@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-03-26
+
+### Features
+
+- Add esp nvs partition tool
+- Expose `pub mod raw` and `pub mod mem_flash` for low-level access
+- Re-export raw constants and types at crate root: `ENTRIES_PER_PAGE`, `ENTRY_STATE_BITMAP_SIZE`, `FLASH_SECTOR_SIZE`, `ITEM_SIZE`, `ItemType`, `MAX_BLOB_DATA_PER_PAGE`, `MAX_BLOB_SIZE`, `PAGE_HEADER_SIZE`, `PageState`
+- Make `MAX_KEY_LENGTH` a public constant
+- Add `Key::as_str()` to retrieve the key as a string slice without null padding
+- Add `Nvs::typed_entries()` to iterate over all data entries with their `ItemType`
+
+### Refactor
+
+- Introduce workspace and rustfmt configuration
+
+
 ## [0.3.0] - 2026-02-27
 
 ### Features
