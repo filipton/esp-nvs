@@ -658,13 +658,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "esp-nvs"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7127e29e84de4171b37d41f577b9dad0b105dc8abe64c611978f2cbf6da1357"
+dependencies = [
+ "embedded-storage",
+ "strum",
+ "thiserror",
+]
+
+[[package]]
 name = "esp-nvs-partition-tool"
 version = "0.1.0"
 dependencies = [
  "base64",
  "clap",
  "csv",
- "esp-nvs",
+ "esp-nvs 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex",
  "serde",
  "similar",

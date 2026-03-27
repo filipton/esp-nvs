@@ -3,7 +3,7 @@ name = "esp-nvs-partition-tool"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.87"
-authors = ["Lars Hemala"]
+authors = ["Lars Hemala", "Nicholas Loubser"]
 repository = "https://github.com/lhemala/esp-nvs/"
 license = "MIT OR Apache-2.0"
 description = "ESP-IDF compatible NVS partition table parser and generator"
@@ -27,7 +27,7 @@ cli = ["dep:clap"]
 base64 = "0.22.1"
 clap = { version = "4.5.60", features = ["derive"], optional = true }
 csv = "1.4.0"
-esp-nvs = { path = "../esp-nvs" }
+esp-nvs = { version = "0.4.0" }
 hex = "0.4.3"
 serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.18"
