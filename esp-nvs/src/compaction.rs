@@ -2,7 +2,6 @@
 //!
 //! This module contains defragmentation, cleanup, and page reclamation logic.
 
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[cfg(feature = "defmt")]
@@ -39,6 +38,10 @@ use crate::types::{
     VersionOffset,
 };
 use crate::u24::u24;
+use crate::vec_map::{
+    VecMap,
+    sort_by_key,
+};
 use crate::{
     Key,
     Nvs,
@@ -53,8 +56,7 @@ where
         trace!("cleanup_dirty_blobs");
 
         // Blob indices whose chunks add up, by (namespace, key), with the version they belong to.
-        let mut consistent =
-            BTreeMap::<(NamespaceIndex, Key), Vec<(VersionOffset, BlobIndexEntryBlobIndexData)>>::new();
+        let mut consistent = VecMap::<(NamespaceIndex, Key), Vec<(VersionOffset, BlobIndexEntryBlobIndexData)>>::new();
 
         for ((namespace_index, chunk_start, key), (index, observed)) in blob_index {
             let Some(index) = index else {
@@ -95,8 +97,7 @@ where
             }
 
             consistent
-                .entry((namespace_index, key))
-                .or_default()
+                .entry_or_default((namespace_index, key))
                 .push((chunk_start, index));
         }
 
@@ -110,7 +111,7 @@ where
             if versions.len() < 2 {
                 continue;
             }
-            versions.sort_by_key(|(_, index)| (index.page_sequence, index.item_index));
+            sort_by_key(&mut versions, |(_, index)| (index.page_sequence, index.item_index));
             let newest = versions.len() - 1;
             for (chunk_start, index) in versions.into_iter().take(newest) {
                 #[cfg(feature = "debug-logs")]
@@ -351,11 +352,11 @@ where
 
         // Build a map of hash (as u32) -> Vec<(page_index, item_index, page_sequence)>
         // Use the hash as a quick filter - duplicates will have the same hash
-        let mut hash_to_item: BTreeMap<u24, Vec<(PageIndex, ItemIndex, PageSequence)>> = BTreeMap::new();
+        let mut hash_to_item: VecMap<u24, Vec<(PageIndex, ItemIndex, PageSequence)>> = VecMap::new();
 
         for (page_idx, page) in self.pages.iter().enumerate() {
             for hash_entry in &page.item_hash_list {
-                hash_to_item.entry(hash_entry.hash).or_default().push((
+                hash_to_item.entry_or_default(hash_entry.hash).push((
                     PageIndex(page_idx),
                     ItemIndex(hash_entry.index),
                     PageSequence(page.header.sequence),
@@ -400,9 +401,9 @@ where
             }
 
             // Group by (namespace_index, key) to find actual duplicates
-            let mut key_groups = BTreeMap::<_, Vec<_>>::new();
+            let mut key_groups = VecMap::<_, Vec<_>>::new();
             for (key, val) in items {
-                key_groups.entry(key).or_default().push(val);
+                key_groups.entry_or_default(key).push(val);
             }
 
             // Erase older duplicates
@@ -412,7 +413,7 @@ where
                 }
 
                 // Sort by page sequence and item index (ascending = oldest first)
-                group.sort_by_key(|(_, ItemIndex(idx), PageSequence(seq), _, _)| (*seq, *idx));
+                sort_by_key(&mut group, |(_, ItemIndex(idx), PageSequence(seq), _, _)| (*seq, *idx));
 
                 // Keep the newest (last after sort), erase older ones
                 let keep_count = group.len() - 1;

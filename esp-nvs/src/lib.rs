@@ -19,6 +19,7 @@ mod set;
 mod statistics;
 mod types;
 mod u24;
+mod vec_map;
 
 pub use get::Get;
 pub use nvs::Nvs;

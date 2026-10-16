@@ -3,7 +3,6 @@
 //! This module contains types used for tracking and managing multi-chunk
 //! blob storage in NVS.
 
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use crate::Key;
@@ -11,6 +10,7 @@ use crate::types::{
     NamespaceIndex,
     VersionOffset,
 };
+use crate::vec_map::VecMap;
 
 /// Key for the blob index: (namespace, version_offset, key).
 pub(crate) type BlobIndexKey = (NamespaceIndex, VersionOffset, Key);
@@ -20,7 +20,7 @@ pub(crate) type BlobIndexValue = (Option<BlobIndexEntryBlobIndexData>, BlobObser
 
 /// The value will only have multiple entries if we are interrupted while writing an updated blob.
 /// Since we clean up on init, there are at most two.
-pub(crate) type BlobIndex = BTreeMap<BlobIndexKey, BlobIndexValue>;
+pub(crate) type BlobIndex = VecMap<BlobIndexKey, BlobIndexValue>;
 
 /// Data about chunks observed on a specific page.
 #[cfg_attr(feature = "debug-logs", derive(Debug))]

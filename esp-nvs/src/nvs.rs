@@ -3,10 +3,7 @@
 //! This module contains the [`Nvs`] struct which provides the high-level
 //! interface for reading and writing values to NVS flash storage.
 
-use alloc::collections::{
-    BTreeMap,
-    BinaryHeap,
-};
+use alloc::collections::BinaryHeap;
 use alloc::vec::Vec;
 
 use crate::error::Error;
@@ -25,6 +22,7 @@ use crate::raw::{
 };
 use crate::set::Set;
 use crate::types::ChunkIndex;
+use crate::vec_map::VecMap;
 use crate::{
     EntryStatistics,
     Key,
@@ -43,7 +41,7 @@ pub struct Nvs<T: Platform> {
     pub(crate) purge: bool,
 
     // set after calling self.load_sectors
-    pub(crate) namespaces: BTreeMap<Key, u8>,
+    pub(crate) namespaces: VecMap<Key, u8>,
     pub(crate) free_pages: BinaryHeap<ThinPage>,
     pub(crate) pages: Vec<ThinPage>,
     /// Legacy single-page blobs the scan came across, as (namespace index, key), for
@@ -90,7 +88,7 @@ impl<T: Platform> Nvs<T> {
             hal,
             base_address: partition_offset,
             sectors: sectors as u16,
-            namespaces: BTreeMap::new(),
+            namespaces: VecMap::new(),
             free_pages: Default::default(),
             pages: Default::default(),
             legacy_blobs: Default::default(),
@@ -289,7 +287,7 @@ impl<T: Platform> Nvs<T> {
         all_pages.extend(self.pages.iter());
         all_pages.extend(self.free_pages.iter());
         // sorted for stable output as this is also used in tests
-        all_pages.sort_by_key(|page| page.address);
+        crate::vec_map::sort_by_key(&mut all_pages, |page| page.address);
 
         let entries_per_page = all_pages
             .into_iter()
@@ -384,11 +382,11 @@ impl<'a, T: Platform> Iterator for IterLoadedItems<'a, T> {
 /// Iterator over keys in all namespaces.
 struct IterKeys<'a, T: Platform> {
     items: IterLoadedItems<'a, T>,
-    namespaces: &'a BTreeMap<Key, u8>,
+    namespaces: &'a VecMap<Key, u8>,
 }
 
 impl<'a, T: Platform> IterKeys<'a, T> {
-    fn new(pages: &'a [ThinPage], hal: &'a mut T, namespaces: &'a BTreeMap<Key, u8>) -> Self {
+    fn new(pages: &'a [ThinPage], hal: &'a mut T, namespaces: &'a VecMap<Key, u8>) -> Self {
         Self {
             items: IterLoadedItems::new(pages, hal),
             namespaces,
@@ -434,11 +432,11 @@ impl<'a, T: Platform> Iterator for IterKeys<'a, T> {
 /// Iterator over typed entries with their types.
 struct IterTypedEntries<'a, T: Platform> {
     items: IterLoadedItems<'a, T>,
-    namespaces: &'a BTreeMap<Key, u8>,
+    namespaces: &'a VecMap<Key, u8>,
 }
 
 impl<'a, T: Platform> IterTypedEntries<'a, T> {
-    fn new(pages: &'a [ThinPage], hal: &'a mut T, namespaces: &'a BTreeMap<Key, u8>) -> Self {
+    fn new(pages: &'a [ThinPage], hal: &'a mut T, namespaces: &'a VecMap<Key, u8>) -> Self {
         Self {
             items: IterLoadedItems::new(pages, hal),
             namespaces,
