@@ -201,18 +201,25 @@ where
             return Ok(LoadPageResult::Empty(page));
         }
 
-        // The items are reinterpreted from raw flash, so their type bytes have to be valid first,
-        // see `Item::from_raw`. `buf` itself keeps the bytes as they are on flash.
-        let mut sanitized = buf;
-        sanitized[offset_of!(RawPage, items)..]
-            .as_chunks_mut::<{ size_of::<Item>() }>()
-            .0
+        // Which entries are blank on flash, taken before the type bytes are sanitized below (a
+        // sanitized type byte could make a torn write look blank). Kept instead of a second copy of
+        // the sector, so loading a page needs one sector buffer on the stack, not three.
+        let mut blank = [false; ENTRIES_PER_PAGE];
+        let items_raw = &mut buf[offset_of!(RawPage, items)..];
+        for (blank, entry) in blank
             .iter_mut()
-            .for_each(sanitize_item_type);
+            .zip(items_raw.as_chunks_mut::<{ size_of::<Item>() }>().0.iter_mut())
+        {
+            *blank = entry.iter().all(|it| *it == 0xFF);
+            // The items are reinterpreted from raw flash, so their type bytes have to be valid
+            // first, see `Item::from_raw`.
+            sanitize_item_type(entry);
+        }
 
-        // Safety: either we return directly CORRUPT/INVALID/EMPTY page or we check the crc
-        // afterwards
-        let raw_page: RawPage = unsafe { core::mem::transmute(sanitized) };
+        // Safety: `RawPage` is `repr(packed)` (alignment 1) and exactly one sector long; either we
+        // return directly CORRUPT/INVALID/EMPTY page or we check the crc afterwards
+        const _: () = assert!(size_of::<RawPage>() == FLASH_SECTOR_SIZE);
+        let raw_page: &RawPage = unsafe { &*buf.as_ptr().cast::<RawPage>() };
 
         #[cfg(feature = "debug-logs")]
         {
@@ -282,11 +289,7 @@ where
                     continue 'item_iter;
                 }
                 EntryMapState::Empty => {
-                    let entry_offset = offset_of!(RawPage, items) + item_index as usize * size_of::<Item>();
-                    if buf[entry_offset..entry_offset + size_of::<Item>()]
-                        .iter()
-                        .all(|it| *it == 0xFF)
-                    {
+                    if blank[item_index as usize] {
                         continue 'item_iter;
                     }
 
